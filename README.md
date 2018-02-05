@@ -1,6 +1,6 @@
 # janitor
-**Bot** project to monitor a **local network**;
-excuse to work with this amazing computer, networking stuff, Python, [bots in Telegram](https://python-telegram-bot.org/) and related tools :grin:
+**Bot** project to monitor a **local network**;  
+excuse to work with my RaspberryPi, networking stuff, Python, [bots in Telegram](https://python-telegram-bot.org/) and related tools :grin:
 
 ### requisites:
 ```
