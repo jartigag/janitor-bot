@@ -19,7 +19,7 @@ from telegram.ext import Updater, CommandHandler
 APP = "janitor"
 APPNAME = "Janitor"
 APPCONF = APP + ".conf"
-CONFIG_DIR = os.path.join(os.path.expanduser("~/now/testing"), ".config") #DEBUGGING
+CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config")
 CONFIG_APP_DIR = os.path.join(CONFIG_DIR, APP)
 CONFIG_FILE = os.path.join(CONFIG_APP_DIR, APPCONF)
 IP_FILE = os.path.join(CONFIG_APP_DIR, "ips.json")
