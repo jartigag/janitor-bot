@@ -4,8 +4,8 @@
 #                  and control it from Telegram and terminal (at least for now)
 # author: @jartigag
 
-#TODO: (99) save prints (pinging) in .log
 #TODO: (123) multithreading
+#TODO: (99) save prints (pinging) in .log
 
 import os
 import argparse
@@ -25,14 +25,27 @@ CONFIG_FILE = os.path.join(CONFIG_APP_DIR, APPCONF)
 IP_FILE = os.path.join(CONFIG_APP_DIR, "ips.json")
 
 def add_ip(address,tag):
-	#echo "{\"ips\":[{},{},{}]}" > .config/janitor/ips.json
+	# mkdir ~/.config/janitor/
+	# echo "{\"ips\":[{\"tag\":\"\",\"address\":\"\"}]}"  > ~/.config/janitor/ips.json
 	#TODO: if IP_FILE doesn't exist
 	with open(IP_FILE, encoding="utf-8") as infile:
 		data = json.load(infile)
-		data["ips"][0].update({"tag":tag,"address":address}) #TODO: improve
+		for i in range(0, len(data["ips"])):
+			#TODO: check address format
+			if data["ips"][i]["address"] == address:
+				data["ips"][i].update({"tag":tag,"address":address})
+				print(address + " renamed as " + tag)
+				break
+			if not data["ips"][i]["address"]:
+				data["ips"][i].update({"tag":tag,"address":address})
+				print(address + " added as " + tag)
+				break
+			if i+1==len(data["ips"]):
+				data["ips"].append({})
+				data["ips"][i+1].update({"tag":tag,"address":address})
+				print("append new ip: " + address + " added as " + tag)
 		with open(IP_FILE, "w", encoding="utf-8") as outfile:
 			json.dump(data, outfile, ensure_ascii=False)
-			print(address + " added as " + tag)
 
 def print_ips():
 	with open(IP_FILE, encoding="utf-8") as f:
@@ -54,6 +67,8 @@ def remove_ip(tag):
 	'''
 
 def config():
+	# mkdir ~/.config/janitor/
+	# touch ~/.config/janitor/janitor.conf
 	#TODO: if CONFIG_FILE doesn't exist
 	with open(CONFIG_FILE, encoding="utf-8") as c:
 		token = input("enter your token \n(get it from @BotFather, as described in https://core.telegram.org/bots#6-botfather):\n")
