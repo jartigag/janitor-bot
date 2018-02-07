@@ -124,16 +124,27 @@ def message(text):
 	bot = JanitorBot()
 	bot.send_message(text)
 
-def pinging():
+def set_iptarget():
 	with open(IP_FILE, encoding="utf-8") as f:
 		data = json.load(f)
-		iptarget = data["ips"][0]["address"] #TODO: get ip with tag="target"
-		hometime = datetime.now()
-		secondsout = 0 # seconds passed
-		timeout = 40 # seconds to elapse before setting as gone
-		atHome = True
+		for i in range(0, len(data["ips"])):
+			if data["ips"][i]["tag"] == "target":
+				iptarget = data["ips"][i]["address"]
+				break
+			if i+1==len(data["ips"]):
+				iptarget = "fail"
+	return iptarget
 
-		while True:
+def pinging():
+	hometime = datetime.now()
+	secondsout = 0 # seconds passed
+	timeout = 40 # seconds to elapse before setting as gone
+	atHome = True
+	while True:
+		iptarget = set_iptarget()
+		if iptarget == "fail":
+			message("no ip tagged as target, can't ping it")
+		else:
 			p = subprocess.Popen(["ping", "-q", "-c", "2", iptarget], stdout = subprocess.PIPE, stderr=subprocess.PIPE)
 			droppedPackets = p.wait()
 
@@ -152,23 +163,7 @@ def pinging():
 					print("gone.")
 					message("goodbye!")
 					atHome = False
-			sleep(10)
-
-def start():
-	with open(CONFIG_FILE, encoding="utf-8") as f:
-		config = json.load(f)
-		token = config["token"]
-	updater= Updater(token=token)
-	dispatcher = updater.dispatcher
-	#TODO: suggest commands in telegram
-	dispatcher.add_handler(CommandHandler('add_ip', telegram_add_ip, pass_args=True))
-	dispatcher.add_handler(CommandHandler('print_ips', telegram_print_ips, pass_args=True))
-	dispatcher.add_handler(CommandHandler('remove_ip', telegram_remove_ip, pass_args=True))
-
-	ping = Thread(target=pinging)
-	polling = Thread(target=updater.start_polling)
-	ping.start()
-	polling.start()
+		sleep(10)
 
 class JanitorBot(Bot):
     def __init__(self, token=None, channel_id=None):
@@ -191,7 +186,7 @@ def telegram_add_ip(bot, update, args):
 	except (IndexError, ValueError):
 		update.message.reply_text("usage: /add_ip <localIP> <tag>")
 
-def telegram_print_ips(bot, update, args):
+def telegram_print_ips(bot, update):
 	try:
 		message(print_ips())
 	except (IndexError, ValueError):
@@ -203,6 +198,22 @@ def telegram_remove_ip(bot, update, args):
 		message(remove_ip(args[0]))
 	except (IndexError, ValueError):
 		update.message.reply_text("usage: /remove_ip <tag>")
+
+def start():
+	with open(CONFIG_FILE, encoding="utf-8") as f:
+		config = json.load(f)
+		token = config["token"]
+	updater= Updater(token=token)
+	dispatcher = updater.dispatcher
+	#TODO: suggest commands in telegram
+	dispatcher.add_handler(CommandHandler('add_ip', telegram_add_ip, pass_args=True))
+	dispatcher.add_handler(CommandHandler('print_ips', telegram_print_ips))
+	dispatcher.add_handler(CommandHandler('remove_ip', telegram_remove_ip, pass_args=True))
+
+	ping = Thread(target=pinging)
+	polling = Thread(target=updater.start_polling)
+	ping.start()
+	polling.start()
 
 if __name__ == "__main__":
 	# Options
