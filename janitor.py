@@ -35,37 +35,62 @@ def add_ip(address,tag):
 			#TODO: check address format
 			if data["ips"][i]["address"] == address:
 				data["ips"][i].update({"tag":tag,"address":address})
-				print(address + " renamed as " + tag)
+				message=address + " renamed as " + tag
+				print(message)
 				break
-			if not data["ips"][i]["address"]:
-				data["ips"][i].update({"tag":tag,"address":address})
-				print(address + " added as " + tag)
-				break
+
 			if i+1==len(data["ips"]):
 				data["ips"].append({})
 				data["ips"][i+1].update({"tag":tag,"address":address})
-				print("append new ip: " + address + " added as " + tag)
+				message="new ip: " + address + " added as " + tag
+				print(message)
+
+		if len(data["ips"])==0: #TODO: not the most elegant solution.. improve it
+				data["ips"].append({})
+				data["ips"][0].update({"tag":tag,"address":address})
+				"new ip: " + address + " added as " + tag
+				print(message)
+
 		with open(IP_FILE, "w", encoding="utf-8") as outfile:
 			json.dump(data, outfile, ensure_ascii=False)
+
+	return message
 
 def print_ips():
 	with open(IP_FILE, encoding="utf-8") as f:
 		data = json.load(f)
+		message=""
+		if not data["ips"]:
+			message="there's no ips saved"
+			print(message)
 		for ip in data["ips"]:
-			print(ip["address"] + " saved as " + ip["tag"])
+			message+=ip["address"] + " saved as " + ip["tag"] + "\n"
+		print(message)
+
+	return message
 
 def remove_ip(tag):
 	#TODO: remove an only ip by its tag
-	'''
 	with open(IP_FILE, encoding="utf-8") as infile:
 		data = json.load(infile)
-		for ip in data["ips"]:
-			if ip["tag"] == tag:
-				ip.pop() #TODO: remove
-				with open(IP_FILE, "w", encoding="utf-8") as outfile:
-					json.dump(data,outfile, ensure_ascii=False)
-					print(tag + " removed")
-	'''
+		if not data["ips"]:
+			message="there's no ips saved"
+			print(message)
+		for i in range(0, len(data["ips"])):
+			if data["ips"][i]["tag"] == tag:
+				message="ip " + data["ips"][i]["address"] + " (" + tag + ") removed"
+				print(message)
+				data["ips"].pop(i)
+				break
+
+			if i+1==len(data["ips"]):
+				message="no ip with " + tag + " as tag"
+				print(message)
+
+		with open(IP_FILE, "w", encoding="utf-8") as outfile:
+			json.dump(data, outfile, ensure_ascii=False)
+
+	return message
 
 def config():
 	# mkdir ~/.config/janitor/
@@ -135,7 +160,10 @@ def start():
 		token = config["token"]
 	updater= Updater(token=token)
 	dispatcher = updater.dispatcher
-	dispatcher.add_handler(CommandHandler('add_ip', telegram_add_ip, pass_args=True)) #TODO: suggest commands in telegram
+	#TODO: suggest commands in telegram
+	dispatcher.add_handler(CommandHandler('add_ip', telegram_add_ip, pass_args=True))
+	dispatcher.add_handler(CommandHandler('print_ips', telegram_print_ips, pass_args=True))
+	dispatcher.add_handler(CommandHandler('remove_ip', telegram_remove_ip, pass_args=True))
 
 	ping = Thread(target=pinging)
 	polling = Thread(target=updater.start_polling)
@@ -159,10 +187,22 @@ class JanitorBot(Bot):
 
 def telegram_add_ip(bot, update, args):
 	try:
-		add_ip(args[0], args[1])
-		message(args[0] + " added as " + args[1])
+		message(add_ip(args[0], args[1]))
 	except (IndexError, ValueError):
 		update.message.reply_text("usage: /add_ip <localIP> <tag>")
+
+def telegram_print_ips(bot, update, args):
+	try:
+		message(print_ips())
+	except (IndexError, ValueError):
+		update.message.reply_text("usage: /print_ips")
+
+
+def telegram_remove_ip(bot, update, args):
+	try:
+		message(remove_ip(args[0]))
+	except (IndexError, ValueError):
+		update.message.reply_text("usage: /remove_ip <tag>")
 
 if __name__ == "__main__":
 	# Options
@@ -194,7 +234,6 @@ if __name__ == "__main__":
 	if args.print_ips:
 		print_ips()
 	if args.remove_ip:
-		print()
-		#remove_ip(args.remove_ip)
+		remove_ip(args.remove_ip)
 	if args.start:
 		start()
