@@ -15,6 +15,7 @@ from time import time, sleep
 from datetime import date, datetime
 from telegram import Bot, ParseMode
 from telegram.ext import Updater, CommandHandler
+from threading import Thread
 
 APP = "janitor"
 APPNAME = "Janitor"
@@ -134,9 +135,12 @@ def start():
 		token = config["token"]
 	updater= Updater(token=token)
 	dispatcher = updater.dispatcher
-	dispatcher.add_handler(CommandHandler('add_ip', telegram_add_ip, pass_args=True))
-	pinging() #TODO: multithreading
-	updater.start_polling()
+	dispatcher.add_handler(CommandHandler('add_ip', telegram_add_ip, pass_args=True)) #TODO: suggest commands in telegram
+
+	ping = Thread(target=pinging)
+	polling = Thread(target=updater.start_polling)
+	ping.start()
+	polling.start()
 
 class JanitorBot(Bot):
     def __init__(self, token=None, channel_id=None):
