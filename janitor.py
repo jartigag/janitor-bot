@@ -4,8 +4,7 @@
 #                  and control it from Telegram and terminal (at least for now)
 # author: @jartigag
 
-#TODO: (123) multithreading
-#TODO: (99) save prints (pinging) in .log
+#TODO: (34) save prints (pinging) in .log
 
 import os
 import argparse
@@ -18,7 +17,6 @@ from telegram.ext import Updater, CommandHandler
 from threading import Thread
 
 APP = "janitor"
-APPNAME = "Janitor"
 APPCONF = APP + ".conf"
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config")
 CONFIG_APP_DIR = os.path.join(CONFIG_DIR, APP)
@@ -31,24 +29,25 @@ def add_ip(address,tag):
 	#TODO: if IP_FILE doesn't exist
 	with open(IP_FILE, encoding="utf-8") as infile:
 		data = json.load(infile)
+
 		for i in range(0, len(data["ips"])):
 			#TODO: check address format
 			if data["ips"][i]["address"] == address:
 				data["ips"][i].update({"tag":tag,"address":address})
-				message=address + " renamed as " + tag
+				message = address + " renamed as " + tag
 				print(message)
 				break
 
 			if i+1==len(data["ips"]):
 				data["ips"].append({})
 				data["ips"][i+1].update({"tag":tag,"address":address})
-				message="new ip: " + address + " added as " + tag
+				message = "new ip: " + address + " added as " + tag
 				print(message)
 
 		if len(data["ips"])==0: #TODO: not the most elegant solution.. improve it
 				data["ips"].append({})
 				data["ips"][0].update({"tag":tag,"address":address})
-				"new ip: " + address + " added as " + tag
+				message = "new ip: " + address + " added as " + tag
 				print(message)
 
 		with open(IP_FILE, "w", encoding="utf-8") as outfile:
@@ -60,31 +59,35 @@ def print_ips():
 	with open(IP_FILE, encoding="utf-8") as f:
 		data = json.load(f)
 		message=""
+
 		if not data["ips"]:
-			message="there's no ips saved"
-			print(message)
+			message = "there's no ips saved"
+
 		for ip in data["ips"]:
-			message+=ip["address"] + " saved as " + ip["tag"] + "\n"
+			message += ip["address"] + " saved as " + ip["tag"] + "\n"
+
 		print(message)
 
 	return message
 
 def remove_ip(tag):
-	#TODO: remove an only ip by its tag
 	with open(IP_FILE, encoding="utf-8") as infile:
 		data = json.load(infile)
+
 		if not data["ips"]:
-			message="there's no ips saved"
+			message = "there's no ips saved"
 			print(message)
+
 		for i in range(0, len(data["ips"])):
+
 			if data["ips"][i]["tag"] == tag:
-				message="ip " + data["ips"][i]["address"] + " (" + tag + ") removed"
+				message = "ip " + data["ips"][i]["address"] + " (" + tag + ") removed"
 				print(message)
 				data["ips"].pop(i)
 				break
 
 			if i+1==len(data["ips"]):
-				message="no ip with " + tag + " as tag"
+				message = "no ip with " + tag + " as tag"
 				print(message)
 
 		with open(IP_FILE, "w", encoding="utf-8") as outfile:
@@ -124,45 +127,30 @@ def message(text):
 	bot = JanitorBot()
 	bot.send_message(text)
 
-def set_iptarget():
-	with open(IP_FILE, encoding="utf-8") as f:
-		data = json.load(f)
-		for i in range(0, len(data["ips"])):
-			if data["ips"][i]["tag"] == "target":
-				iptarget = data["ips"][i]["address"]
-				break
-			if i+1==len(data["ips"]):
-				iptarget = "fail"
-	return iptarget
-
-def pinging():
+def pinging(iptarget, tag):
 	hometime = datetime.now()
 	secondsout = 0 # seconds passed
 	timeout = 40 # seconds to elapse before setting as gone
 	atHome = True
 	while True:
-		iptarget = set_iptarget()
-		if iptarget == "fail":
-			message("no ip tagged as target, can't ping it")
-		else:
-			p = subprocess.Popen(["ping", "-q", "-c", "2", iptarget], stdout = subprocess.PIPE, stderr=subprocess.PIPE)
-			droppedPackets = p.wait()
+		p = subprocess.Popen(["ping", "-q", "-c", "2", iptarget], stdout = subprocess.PIPE, stderr=subprocess.PIPE)
+		droppedPackets = p.wait()
 
-			#TODO: save prints in .log
-			if droppedPackets == 0:
-				print("at home! -", datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
-				hometime = datetime.now()
-				if not atHome:
-					message("welcome home!")
-					atHome = True
-			else:
-				secondsout = (datetime.now() - hometime).seconds
-				print("not here since %d seconds -" % secondsout, datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
-				#TODO: format to minutes, hours
-				if secondsout > timeout and atHome:
-					print("gone.")
-					message("goodbye!")
-					atHome = False
+		#TODO: save prints in .log
+		if droppedPackets == 0:
+			print(tag + " at home! -", datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
+			hometime = datetime.now()
+			if not atHome:
+				message("welcome home, " + tag + "!")
+				atHome = True
+		else:
+			secondsout = (datetime.now() - hometime).seconds
+			print(tag + " isn't here since %d seconds -" % secondsout, datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
+			#TODO: format to minutes, hours
+			if secondsout > timeout and atHome:
+				print(tag + " gone.")
+				message("goodbye " + tag + "!")
+				atHome = False
 		sleep(10)
 
 class JanitorBot(Bot):
@@ -203,17 +191,21 @@ def start():
 	with open(CONFIG_FILE, encoding="utf-8") as f:
 		config = json.load(f)
 		token = config["token"]
+
 	updater= Updater(token=token)
 	dispatcher = updater.dispatcher
-	#TODO: suggest commands in telegram
 	dispatcher.add_handler(CommandHandler('add_ip', telegram_add_ip, pass_args=True))
 	dispatcher.add_handler(CommandHandler('print_ips', telegram_print_ips))
 	dispatcher.add_handler(CommandHandler('remove_ip', telegram_remove_ip, pass_args=True))
 
-	ping = Thread(target=pinging)
-	polling = Thread(target=updater.start_polling)
-	ping.start()
-	polling.start()
+	with open(IP_FILE, encoding="utf-8") as f:
+		data = json.load(f)
+		if len(data["ips"])==0:
+			message("there's no ip, can't ping it")
+		for i in range(0, len(data["ips"])):
+			Thread(target=pinging, args=(data["ips"][i]["address"],data["ips"][i]["tag"])).start()
+		
+	Thread(target=updater.start_polling).start()
 
 if __name__ == "__main__":
 	# Options
@@ -226,7 +218,7 @@ if __name__ == "__main__":
 	group.add_argument("--message", "-m",
 						help="send a message to the channel")
 	group.add_argument("--print_ips", "-p", action="store_true",
-						help="print(ips stored in ips.json")
+						help="print saved ips")
 	group.add_argument("--remove_ip", "-r", metavar="tag",
 						help="remove ip identified with given tag.")
 	group.add_argument("--start", "-s", action="store_true",
