@@ -143,7 +143,7 @@ def pinging(iptarget, tag):
 			if not atHome:
 				message("welcome home, " + tag + "!")
 				atHome = True
-		else:
+		if droppedPackets == 2:
 			secondsout = (datetime.now() - hometime).seconds
 			print(tag + " isn't here since %d seconds -" % secondsout, datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
 			#TODO: format to minutes, hours
