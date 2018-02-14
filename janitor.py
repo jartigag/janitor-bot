@@ -133,17 +133,17 @@ def pinging(iptarget, tag):
 	timeout = 40 # seconds to elapse before setting as gone
 	atHome = True
 	while True:
-		p = subprocess.Popen(["ping", "-q", "-c", "2", iptarget], stdout = subprocess.PIPE, stderr=subprocess.PIPE)
+		p = subprocess.Popen(["ping", "-q", "-c", "3", iptarget], stdout = subprocess.PIPE, stderr=subprocess.PIPE)
 		droppedPackets = p.wait()
 
 		#TODO: save prints in .log
-		if droppedPackets == 0:
+		if not droppedPackets:
 			print(tag + " at home! -", datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
 			hometime = datetime.now()
 			if not atHome:
 				message("welcome home, " + tag + "!")
 				atHome = True
-		if droppedPackets == 2:
+		else:
 			secondsout = (datetime.now() - hometime).seconds
 			print(tag + " isn't here since %d seconds -" % secondsout, datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
 			#TODO: format to minutes, hours
