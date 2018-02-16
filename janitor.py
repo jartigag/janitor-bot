@@ -4,7 +4,9 @@
 #                  and control it from Telegram and terminal (at least for now)
 # author: @jartigag
 
-#TODO: (34) save prints (pinging) in .log
+#TODO: (144) save prints (pinging) in .log
+#TODO: (161) at_home, outside
+#TODO: if CONFIG_FILE, IP_FILE, REMINDERS_FILE doesn't exist
 
 import os
 import argparse
@@ -22,11 +24,14 @@ CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config")
 CONFIG_APP_DIR = os.path.join(CONFIG_DIR, APP)
 CONFIG_FILE = os.path.join(CONFIG_APP_DIR, APPCONF)
 IP_FILE = os.path.join(CONFIG_APP_DIR, "ips.json")
+REMINDERS_FILE = os.path.join(CONFIG_APP_DIR, "reminders.json")
+
+ipsAtHome = os.path.join(CONFIG_APP_DIR, "ipsAtHome.json")
+ipsOutside = os.path.join(CONFIG_APP_DIR, "ipsAtHome.json")
 
 def add_ip(address,tag):
 	# mkdir ~/.config/janitor/
 	# echo "{\"ips\":[{\"tag\":\"\",\"address\":\"\"}]}"  > ~/.config/janitor/ips.json
-	#TODO: if IP_FILE doesn't exist
 	with open(IP_FILE, encoding="utf-8") as infile:
 		data = json.load(infile)
 
@@ -98,7 +103,6 @@ def remove_ip(tag):
 def config():
 	# mkdir ~/.config/janitor/
 	# touch ~/.config/janitor/janitor.conf
-	#TODO: if CONFIG_FILE doesn't exist
 	with open(CONFIG_FILE, encoding="utf-8") as c:
 		token = input("enter your token \n(get it from @BotFather, as described in https://core.telegram.org/bots#6-botfather):\n")
 		if token is "":
@@ -127,6 +131,7 @@ def message(text):
 	bot = JanitorBot()
 	bot.send_message(text)
 
+#TODO: only 1 argument (tag)
 def pinging(iptarget, tag):
 	hometime = datetime.now()
 	secondsout = 0 # seconds passed
@@ -143,6 +148,7 @@ def pinging(iptarget, tag):
 			if not atHome:
 				message("welcome home, " + tag + "!")
 				atHome = True
+				message(reminders(tag))
 		else:
 			secondsout = (datetime.now() - hometime).seconds
 			print(tag + " isn't here since %d seconds -" % secondsout, datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
@@ -151,6 +157,8 @@ def pinging(iptarget, tag):
 				print(tag + " gone.")
 				message("goodbye " + tag + "!")
 				atHome = False
+
+		#TODO at_home, outside:
 		sleep(10)
 
 class JanitorBot(Bot):
@@ -180,12 +188,18 @@ def telegram_print_ips(bot, update):
 	except (IndexError, ValueError):
 		update.message.reply_text("usage: /print_ips")
 
-
 def telegram_remove_ip(bot, update, args):
 	try:
 		message(remove_ip(args[0]))
 	except (IndexError, ValueError):
 		update.message.reply_text("usage: /remove_ip <tag>")
+
+def telegram_add_reminder(bot, update, args):
+	try:
+		#TODO: make args[1] allow spaces
+		message(add_reminder(args[0], args[1]))
+	except (IndexError, ValueError):
+		update.message.reply_text("usage: /add_reminder <tag> <reminder_message>")
 
 def start():
 	with open(CONFIG_FILE, encoding="utf-8") as f:
@@ -197,6 +211,7 @@ def start():
 	dispatcher.add_handler(CommandHandler('add_ip', telegram_add_ip, pass_args=True))
 	dispatcher.add_handler(CommandHandler('print_ips', telegram_print_ips))
 	dispatcher.add_handler(CommandHandler('remove_ip', telegram_remove_ip, pass_args=True))
+	dispatcher.add_handler(CommandHandler('add_reminder', telegram_add_reminder, pass_args=True))
 
 	with open(IP_FILE, encoding="utf-8") as f:
 		data = json.load(f)
@@ -207,21 +222,85 @@ def start():
 		
 	Thread(target=updater.start_polling).start()
 
+def at_home():
+	#TODO
+	print("ips at home")
+
+def outside():
+	#TODO
+	print("ips outside")
+
+def add_reminder(tag, reminder):
+	# mkdir ~/.config/janitor/
+	# echo "{\"ips\":[]}"  > ~/.config/janitor/reminders.json
+	with open(REMINDERS_FILE, encoding="utf-8") as infile:
+		data = json.load(infile)
+
+		for i in range(0, len(data["ips"])):
+			if data["ips"][i]["tag"] == tag:
+				data["ips"][i]["reminder"].append(reminder)
+				message = "reminder added to " + tag + ": " + reminder
+				print(message)
+				break
+
+			if i+1==len(data["ips"]):
+				data["ips"].append({})
+				data["ips"][i+1].update({"tag":tag,"reminder":[reminder]})
+				message = "new reminder to " + tag + ": " + reminder
+				print(message)
+
+		if len(data["ips"])==0: #TODO: not the most elegant solution.. improve it
+				data["ips"].append({})
+				data["ips"][0].update({"tag":tag,"reminder":[reminder]})
+				message = "new reminder to " + tag + ": " + reminder
+				print(message)
+
+		with open(REMINDERS_FILE, "w", encoding="utf-8") as outfile:
+			json.dump(data, outfile, ensure_ascii=False)
+
+	return message
+
+def reminders(tag):
+	with open(REMINDERS_FILE, encoding="utf-8") as f:
+		data = json.load(f)
+		message=""
+
+		if not data["ips"]:
+			message = "there's no reminders for " + tag
+		for i in range(0, len(data["ips"])):
+			if data["ips"][i]["tag"] == tag:
+				message=str(data["ips"][i]["reminder"])
+				data["ips"][i]["reminder"] = []
+		with open(REMINDERS_FILE, "w", encoding="utf-8") as outfile:
+			json.dump(data, outfile, ensure_ascii=False)
+
+
+		print(message)
+
+	return message
+
+
 if __name__ == "__main__":
 	# Options
 	parser = argparse.ArgumentParser(description="simple bot to monitor a local network")
 	group = parser.add_mutually_exclusive_group()
-	group.add_argument("--add_ip", "-a", metavar=("ip_address","tag"), nargs=2,
+	group.add_argument("-a", "--add_ip", metavar=("ip_address","tag"), nargs=2,
 	                    help="add an ip address with a tag. example: 192.168.1.1 router")
-	group.add_argument("--config", "-c", action="store_true",
+	group.add_argument("-c", "--config", action="store_true",
 						help="set telegram params (token, channel_id)")
-	group.add_argument("--message", "-m",
+	group.add_argument("-e", "--at_home", action="store_true",
+						help="print who is at home")
+	group.add_argument("-m", "--message", 
 						help="send a message to the channel")
-	group.add_argument("--print_ips", "-p", action="store_true",
+	group.add_argument("-n", "--add_reminder", metavar=("tag","reminder"), nargs=2,
+	                    help="add a reminder to a saved ip coming home. example: john \"hang up the washing!\"")
+	group.add_argument( "-o", "--outside",action="store_true",
+						help="print who is outside")
+	group.add_argument("-p", "--print_ips", action="store_true",
 						help="print saved ips")
-	group.add_argument("--remove_ip", "-r", metavar="tag",
+	group.add_argument("-r", "--remove_ip", metavar="tag",
 						help="remove ip identified with given tag.")
-	group.add_argument("--start", "-s", action="store_true",
+	group.add_argument("-s", "--start", action="store_true",
 						help="start running the script")
 
 	args = parser.parse_args()
@@ -232,8 +311,16 @@ if __name__ == "__main__":
 		add_ip(address,tag)
 	if args.config:
 		config()
+	if args.at_home:
+		at_home()
 	if args.message:
 		message(args.message)
+	if args.add_reminder:
+		tag = args.add_reminder[0]
+		reminder = args.add_reminder[1]
+		add_reminder(tag,reminder)
+	if args.outside:
+		outside()
 	if args.print_ips:
 		print_ips()
 	if args.remove_ip:
