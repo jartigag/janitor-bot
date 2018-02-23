@@ -100,7 +100,7 @@ def delete_ip(tag):
 
 	return message
 
-def add_reminder(tag, reminder):
+def reminder(tag, reminder):
 	# mkdir ~/.config/janitor/
 	# echo "{\"ips\":[]}"  > ~/.config/janitor/reminders.json
 	with open(REMINDERS_FILE, encoding="utf-8") as infile:
@@ -208,12 +208,12 @@ def telegram_delete_ip(bot, update, args):
 	except (IndexError, ValueError):
 		update.message.reply_text("usage: /delete_ip <tag>")
 
-def telegram_add_reminder(bot, update, args):
+def telegram_reminder(bot, update, args):
 	try:
 		#TODO: make args[1] to allow spaces
-		message(add_reminder(args[0], args[1]))
+		message(reminder(args[0], args[1]))
 	except (IndexError, ValueError):
-		update.message.reply_text("usage: /add_reminder <tag> <reminder_message>")
+		update.message.reply_text("usage: /reminder <tag> <reminder_message>")
 
 #TODO: only 1 argument (tag)
 def pinging(iptarget, tag):
@@ -255,7 +255,7 @@ def start():
 	dispatcher.add_handler(CommandHandler('add_ip', telegram_add_ip, pass_args=True))
 	dispatcher.add_handler(CommandHandler('print_ips', telegram_print_ips))
 	dispatcher.add_handler(CommandHandler('delete_ip', telegram_delete_ip, pass_args=True))
-	dispatcher.add_handler(CommandHandler('add_reminder', telegram_add_reminder, pass_args=True))
+	dispatcher.add_handler(CommandHandler('reminder', telegram_reminder, pass_args=True))
 
 	with open(IP_FILE, encoding="utf-8") as f:
 		data = json.load(f)
@@ -289,7 +289,7 @@ if __name__ == "__main__":
 						help="delete ip identified with given tag.")
 	#group.add_argument("-e", "--at_home", action="store_true",
 	#					help="print who is at home")
-	group.add_argument("-r", "--add_reminder", metavar=("tag","reminder"), nargs=2,
+	group.add_argument("-r", "--reminder", metavar=("tag","reminder"), nargs=2,
 	                    help="add a reminder to a saved ip coming home. example: john \"hang up the washing!\"")
 	#group.add_argument( "-o", "--outside",action="store_true",
 	#					help="print who is outside")
@@ -306,10 +306,10 @@ if __name__ == "__main__":
 		config()
 	#if args.at_home:
 	#	at_home()
-	if args.add_reminder:
-		tag = args.add_reminder[0]
-		reminder = args.add_reminder[1]
-		add_reminder(tag,reminder)
+	if args.reminder:
+		tag = args.reminder[0]
+		reminder = args.reminder[1]
+		reminder(tag,reminder)
 	#if args.outside:
 	#	outside()
 	if args.print_ips:
