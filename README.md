@@ -1,6 +1,10 @@
-# janitor
-**Bot** project to monitor a **local network**;  
-excuse to work with my RaspberryPi, networking stuff, Python, [bots in Telegram](https://python-telegram-bot.org/) and related tools :grin:
+[Janitor](https://github.com/jartigag/janitor) es una **herramienta para LANs** escrita en Python y controlable tanto desde terminal como mediante un bot de Telegram.  
+Su función principal consiste en saludar cuando llega alguien y despedirle cuando se marcha. Es decir, este *empleado* cumple con la primera norma de educación que cabe esperar en cualquier ámbito de la vida (incluida una red IP): **hacer ping** 🙃  
+Además, permite asociar **recordatorios** a cada IP. El objetivo de esta función es recibir un mensaje de Telegram con el texto deseado cuando el dispositivo deseado *llegue a casa*.
+
+> Janitor: un conserje 24h para tu red WiFi doméstica o la red de tu oficina.
+
+[post](https://jartigag.github.io/janitor) presentando la herramienta: https://jartigag.github.io/janitor
 
 ### requisites:
 ```
