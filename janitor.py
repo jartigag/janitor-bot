@@ -137,8 +137,8 @@ def reminders(tag):
 		data = json.load(f)
 		message=""
 
-		if not data["ips"]:
-			message = "there's no reminders for " + tag
+		#if not data["ips"]:
+		#	message = "there's no reminders for " + tag
 		for i in range(0, len(data["ips"])):
 			if data["ips"][i]["tag"] == tag:
 				message=str(data["ips"][i]["reminder"])
