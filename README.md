@@ -4,7 +4,7 @@ Además, permite asociar **recordatorios** a cada IP. El objetivo de esta funci�
 
 > Janitor: un conserje 24h para tu red WiFi doméstica o la red de tu oficina.
 
-[post](https://jartigag.github.io/janitor) presentando la herramienta: https://jartigag.github.io/janitor
+[post](https://jartigag.github.io/janitor-bot) presentando la herramienta: https://jartigag.github.io/janitor-bot
 
 ### requisites:
 ```
