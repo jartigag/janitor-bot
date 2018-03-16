@@ -6,14 +6,14 @@ Además, permite asociar **recordatorios** a cada IP. El objetivo de esta funci�
 
 [post](https://jartigag.github.io/janitor-bot) presentando la herramienta: https://jartigag.github.io/janitor-bot
 
-### requisites:
-```
-$ sudo apt install python3-pip
-$ sudo pip3 install python-telegram-bot --upgrade
-```
-
 <p align="center">
 <a href="https://11kaito11.deviantart.com/art/Scrubs-Wallpaper-11-330396239">
   <img src="https://raw.githubusercontent.com/jartigag/janitor/master/janitor.png" width="60%">
 </a>
 </p>
+
+### instalación:
+```
+$ sudo apt install python3-pip
+$ sudo pip3 install python-telegram-bot --upgrade
+```
