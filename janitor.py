@@ -232,7 +232,7 @@ def pinging(iptarget, tag):
 			if not atHome:
 				message("welcome home, " + tag + "!")
 				atHome = True
-				message(reminders(tag))
+				#message(reminders(tag))
 		else:
 			secondsout = (datetime.now() - hometime).seconds
 			print(tag + " isn't here since %d seconds -" % secondsout, datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
