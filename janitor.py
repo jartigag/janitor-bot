@@ -10,7 +10,6 @@
 
 import os
 import argparse
-import sys
 import json
 import subprocess
 from time import time, sleep
@@ -37,6 +36,7 @@ def add_ip(address,tag):
 
 		for i in range(0, len(data["ips"])):
 			#TODO: check address format
+			#\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b
 			if data["ips"][i]["address"] == address:
 				data["ips"][i].update({"tag":tag,"address":address})
 				message = address + " renamed as " + tag
@@ -100,7 +100,7 @@ def delete_ip(tag):
 
 	return message
 
-def reminder(tag, reminder):
+def add_reminder(tag, reminder):
 	# mkdir ~/.config/janitor/
 	# echo "{\"ips\":[]}"  > ~/.config/janitor/reminders.json
 	with open(REMINDERS_FILE, encoding="utf-8") as infile:
@@ -211,7 +211,7 @@ def telegram_delete_ip(bot, update, args):
 def telegram_reminder(bot, update, args):
 	try:
 		#TODO: make args[1] to allow spaces
-		message(reminder(args[0], args[1]))
+		message(add_reminder(args[0], args[1]))
 	except (IndexError, ValueError):
 		update.message.reply_text("usage: /reminder <tag> <reminder_message>")
 
@@ -309,7 +309,7 @@ if __name__ == "__main__":
 	if args.reminder:
 		tag = args.reminder[0]
 		reminder = args.reminder[1]
-		reminder(tag,reminder)
+		add_reminder(tag,reminder)
 	#if args.outside:
 	#	outside()
 	if args.print_ips:
@@ -318,6 +318,5 @@ if __name__ == "__main__":
 		delete_ip(args.delete_ip)
 	if args.start:
 		start()
-	if len(sys.argv)==1:
+	if not any(vars(args).values()):
 	    parser.print_help()
-	    sys.exit(1)
