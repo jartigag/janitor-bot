@@ -4,11 +4,11 @@
 #                  and control it from Telegram and terminal
 # author: @jartigag
 
-#TODO: (228) save prints (pinging) in .log
 #TODO: (269) at_home, outside
 #TODO: if CONFIG_FILE, IP_FILE, REMINDERS_FILE doesn't exist
 
 import os
+import logging
 import argparse
 import json
 import subprocess
@@ -22,6 +22,7 @@ APP = "janitor"
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config")
 CONFIG_APP_DIR = os.path.join(CONFIG_DIR, APP)
 CONFIG_FILE = os.path.join(CONFIG_APP_DIR, APP + ".conf")
+LOGGING_FILE = os.path.join(CONFIG_DIR, APP + ".log")
 IP_FILE = os.path.join(CONFIG_APP_DIR, "ips.json")
 REMINDERS_FILE = os.path.join(CONFIG_APP_DIR, "reminders.json")
 
@@ -228,6 +229,7 @@ def pinging(iptarget, tag):
 		#TODO: save prints in .log
 		if not droppedPackets:
 			print(tag + " at home! -", datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
+			logger.warning(tag + " at home! -", datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
 			hometime = datetime.now()
 			if not atHome:
 				message("welcome home, " + tag + "!")
@@ -236,9 +238,11 @@ def pinging(iptarget, tag):
 		else:
 			secondsout = (datetime.now() - hometime).seconds
 			print(tag + " isn't here since %d seconds -" % secondsout, datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
+			logger.warning(tag + " isn't here since %d seconds -" % secondsout, datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
 			#TODO: format to minutes, hours
 			if secondsout > timeout and atHome:
 				print(tag + " is gone.")
+				logger.warning(tag + " is gone.")
 				message("goodbye " + tag + "!")
 				atHome = False
 
@@ -297,6 +301,10 @@ if __name__ == "__main__":
 						help="start running the script")
 
 	args = parser.parse_args()
+
+	logger = logging.getLogger()
+	logger.setLevel(logging.WARNING) #TODO: INFO level?
+	logger.addHandler(LOGGING_FILE)
 
 	if args.add_ip:
 		address = args.add_ip[0]
