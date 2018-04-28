@@ -8,6 +8,7 @@
 #TODO: if CONFIG_FILE, IP_FILE, REMINDERS_FILE doesn't exist
 
 import os
+import re
 import logging
 import argparse
 import json
@@ -22,7 +23,7 @@ APP = "janitor"
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config")
 CONFIG_APP_DIR = os.path.join(CONFIG_DIR, APP)
 CONFIG_FILE = os.path.join(CONFIG_APP_DIR, APP + ".conf")
-LOGGING_FILE = os.path.join(CONFIG_DIR, APP + ".log")
+LOGGING_FILE = os.path.join(CONFIG_APP_DIR, APP + ".log")
 IP_FILE = os.path.join(CONFIG_APP_DIR, "ips.json")
 REMINDERS_FILE = os.path.join(CONFIG_APP_DIR, "reminders.json")
 
@@ -32,32 +33,35 @@ ipsOutside = os.path.join(CONFIG_APP_DIR, "ipsAtHome.json")
 def add_ip(address,tag):
 	# mkdir ~/.config/janitor/
 	# echo "{\"ips\":[{\"tag\":\"\",\"address\":\"\"}]}"  > ~/.config/janitor/ips.json
-	with open(IP_FILE, encoding="utf-8") as infile:
-		data = json.load(infile)
 
-		for i in range(0, len(data["ips"])):
-			#TODO: check address format
-			#\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b
-			if data["ips"][i]["address"] == address:
-				data["ips"][i].update({"tag":tag,"address":address})
-				message = address + " renamed as " + tag
-				print(message)
-				break
+	# IP address pattern
+	pattern = re.compile("^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
+	# Check if it's a valid ip address
+	if pattern.match(hostIP):
+		with open(IP_FILE, encoding="utf-8") as infile:
+			data = json.load(infile)
 
-			if i+1==len(data["ips"]):
-				data["ips"].append({})
-				data["ips"][i+1].update({"tag":tag,"address":address})
-				message = "new ip: " + address + " added as " + tag
-				print(message)
+			for i in range(0, len(data["ips"])):
+				if data["ips"][i]["address"] == address:
+					data["ips"][i].update({"tag":tag,"address":address})
+					message = address + " renamed as " + tag
+					print(message)
+					break
 
-		if len(data["ips"])==0: #TODO: not the most elegant solution.. improve it
-				data["ips"].append({})
-				data["ips"][0].update({"tag":tag,"address":address})
-				message = "new ip: " + address + " added as " + tag
-				print(message)
+				if i+1==len(data["ips"]):
+					data["ips"].append({})
+					data["ips"][i+1].update({"tag":tag,"address":address})
+					message = "new ip: " + address + " added as " + tag
+					print(message)
 
-		with open(IP_FILE, "w", encoding="utf-8") as outfile:
-			json.dump(data, outfile, ensure_ascii=False)
+			if len(data["ips"])==0: #TODO: not the most elegant solution.. improve it
+					data["ips"].append({})
+					data["ips"][0].update({"tag":tag,"address":address})
+					message = "new ip: " + address + " added as " + tag
+					print(message)
+
+			with open(IP_FILE, "w", encoding="utf-8") as outfile:
+				json.dump(data, outfile, ensure_ascii=False)
 
 	return message
 
@@ -226,10 +230,9 @@ def pinging(iptarget, tag):
 		p = subprocess.Popen(["ping", "-q", "-c", "3", iptarget], stdout = subprocess.PIPE, stderr=subprocess.PIPE)
 		droppedPackets = p.wait()
 
-		#TODO: save prints in .log
 		if not droppedPackets:
 			print(tag + " at home! -", datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
-			logger.warning(tag + " at home! -", datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
+			logger.warning(tag + " at home! - " + datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
 			hometime = datetime.now()
 			if not atHome:
 				message("welcome home, " + tag + "!")
@@ -238,7 +241,7 @@ def pinging(iptarget, tag):
 		else:
 			secondsout = (datetime.now() - hometime).seconds
 			print(tag + " isn't here since %d seconds -" % secondsout, datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
-			logger.warning(tag + " isn't here since %d seconds -" % secondsout, datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
+			logger.warning(tag + " isn't here since "+secondsout+" seconds - " + datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
 			#TODO: format to minutes, hours
 			if secondsout > timeout and atHome:
 				print(tag + " is gone.")
@@ -304,7 +307,8 @@ if __name__ == "__main__":
 
 	logger = logging.getLogger()
 	logger.setLevel(logging.WARNING) #TODO: INFO level?
-	logger.addHandler(LOGGING_FILE)
+	logFile = logging.FileHandler(CONFIG_APP_DIR, LOGGING_FILE)
+	logger.addHandler(logFile)
 
 	if args.add_ip:
 		address = args.add_ip[0]
