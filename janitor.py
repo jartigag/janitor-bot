@@ -241,7 +241,7 @@ def pinging(iptarget, tag):
 		else:
 			secondsout = (datetime.now() - hometime).seconds
 			print(tag + " isn't here since %d seconds -" % secondsout, datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
-			logger.warning(tag + " isn't here since "+secondsout+" seconds - " + datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
+			logger.warning(tag + " isn't here since "+str(secondsout)+" seconds - " + datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
 			#TODO: format to minutes, hours
 			if secondsout > timeout and atHome:
 				print(tag + " is gone.")
@@ -307,7 +307,7 @@ if __name__ == "__main__":
 
 	logger = logging.getLogger()
 	logger.setLevel(logging.WARNING) #TODO: INFO level?
-	logFile = logging.FileHandler(CONFIG_APP_DIR, LOGGING_FILE)
+	logFile = logging.FileHandler(LOGGING_FILE)
 	logger.addHandler(logFile)
 
 	if args.add_ip:
