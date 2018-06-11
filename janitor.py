@@ -1,8 +1,19 @@
 #!/usr/bin/env python3
+# -*- coding: utf-8 -*-
 #
 # Janitor, a bot to monitor a local network
-#                  and control it from Telegram and terminal
-# author: @jartigag
+# and control it from Telegram and terminal
+#
+# @jartigag
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, version 3 of the License.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
 
 #TODO: (269) at_home, outside
 #TODO: if CONFIG_FILE, IP_FILE, REMINDERS_FILE doesn't exist
@@ -36,30 +47,32 @@ def add_ip(address,tag):
 
 	# IP address pattern
 	pattern = re.compile("^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
-	# Check if it's a valid ip address
+	# check if it's a valid ip address
 	if pattern.match(hostIP):
-		with open(IP_FILE, encoding="utf-8") as infile:
-			data = json.load(infile)
-
-			for i in range(0, len(data["ips"])):
-				if data["ips"][i]["address"] == address:
-					data["ips"][i].update({"tag":tag,"address":address})
-					message = address + " renamed as " + tag
-					print(message)
-					break
-
-				if i+1==len(data["ips"]):
-					data["ips"].append({})
-					data["ips"][i+1].update({"tag":tag,"address":address})
-					message = "new ip: " + address + " added as " + tag
-					print(message)
-
-			if len(data["ips"])==0: #TODO: not the most elegant solution.. improve it
+		with json.load(open(IP_FILE)) as data:
+			# if there's no ips: add it
+			if not data["ips"]:
 					data["ips"].append({})
 					data["ips"][0].update({"tag":tag,"address":address})
 					message = "new ip: " + address + " added as " + tag
 					print(message)
+			else:
+				# if there are ips: loop throught it
+				for ip in data["ips"]:
+					# if address is in IP_FILE: rename it
+					if ip["address"] == address:
+						ip.update({"tag":tag,"address":address})
+						message = address + " renamed as " + tag
+						print(message)
+						break
+					# if it's last element (that is, address isn't in IP_FILE): add it
+					if ip == data["ips"][-1]:
+						data["ips"].append({})
+						data["ips"][i+1].update({"tag":tag,"address":address})
+						message = "new ip: " + address + " added as " + tag
+						print(message)
 
+			# save changes:
 			with open(IP_FILE, "w", encoding="utf-8") as outfile:
 				json.dump(data, outfile, ensure_ascii=False)
 
@@ -69,37 +82,34 @@ def print_ips():
 	with open(IP_FILE, encoding="utf-8") as f:
 		data = json.load(f)
 		message=""
-
 		if not data["ips"]:
 			message = "there's no ips saved"
-
 		for ip in data["ips"]:
 			message += ip["address"] + " saved as " + ip["tag"] + "\n"
-
 		print(message)
-
 	return message
 
 def delete_ip(tag):
-	with open(IP_FILE, encoding="utf-8") as infile:
-		data = json.load(infile)
-
+	with json.load(open(IP_FILE)) as data:
+		# if there's no ips:
 		if not data["ips"]:
 			message = "there's no ips saved"
 			print(message)
+		else:
+			# if there are ips: loop throught it
+			for ip in data["ips"]:
+				# if tag is in IP_FILE: remove it
+				if ip["tag"] == tag:
+					message = "ip " + ip["address"] + " (" + tag + ") removed"
+					print(message)
+					data["ips"].pop(data["ips"].index(ip))
+					break
+				# if it's last element (that is, tag isn't in IP_FILE): warn it
+				if ip == data["ips"][-1]:
+					message = "no ip with " + tag + " as tag"
+					print(message)
 
-		for i in range(0, len(data["ips"])):
-
-			if data["ips"][i]["tag"] == tag:
-				message = "ip " + data["ips"][i]["address"] + " (" + tag + ") removed"
-				print(message)
-				data["ips"].pop(i)
-				break
-
-			if i+1==len(data["ips"]):
-				message = "no ip with " + tag + " as tag"
-				print(message)
-
+		# save changes:
 		with open(IP_FILE, "w", encoding="utf-8") as outfile:
 			json.dump(data, outfile, ensure_ascii=False)
 
@@ -108,30 +118,33 @@ def delete_ip(tag):
 def add_reminder(tag, reminder):
 	# mkdir ~/.config/janitor/
 	# echo "{\"ips\":[]}"  > ~/.config/janitor/reminders.json
-	with open(REMINDERS_FILE, encoding="utf-8") as infile:
-		data = json.load(infile)
-
-		for i in range(0, len(data["ips"])):
-			if data["ips"][i]["tag"] == tag:
-				data["ips"][i]["reminder"].append(reminder)
-				message = "reminder added to " + tag + ": " + reminder
-				print(message)
-				break
-
-			if i+1==len(data["ips"]):
-				data["ips"].append({})
-				data["ips"][i+1].update({"tag":tag,"reminder":[reminder]})
-				message = "new reminder to " + tag + ": " + reminder
-				print(message)
+	with json.load(open(REMINDERS_FILE)) as data:
+		# if there's no ips: add tag and reminder
+		if not data["ips"]:
+			data["ips"].append({})
+			data["ips"][0].update({"tag":tag,"reminder":[reminder]})
+			message = "new reminder to " + tag + ": " + reminder
+			print(message)
+		else:
+			# if there are ips: loop throught it
+			for ip in data["ips"]:
+				# if tag is in REMINDERS_FILE: add reminder
+				if ip["tag"] == tag:
+					ip["reminder"].append(reminder)
+					message = "reminder added to " + tag + ": " + reminder
+					print(message)
+					break
+				# if it's last element (that is, tag isn't in REMINDERS_FILE): add tag and reminder
+				if ip == data["ips"][-1]:
+					data["ips"].append({})
+					data["ips"][i+1].update({"tag":tag,"reminder":[reminder]})
+					message = "new reminder to " + tag + ": " + reminder
+					print(message)
 
 		#TODO: it incorrectly add a reminder to inexistent tags
 		#		-> check if tag exists in ips.json
-		if len(data["ips"])==0: #TODO: not the most elegant solution.. improve it
-				data["ips"].append({})
-				data["ips"][0].update({"tag":tag,"reminder":[reminder]})
-				message = "new reminder to " + tag + ": " + reminder
-				print(message)
 
+		# save changes:
 		with open(REMINDERS_FILE, "w", encoding="utf-8") as outfile:
 			json.dump(data, outfile, ensure_ascii=False)
 
@@ -141,13 +154,12 @@ def reminders(tag):
 	with open(REMINDERS_FILE, encoding="utf-8") as f:
 		data = json.load(f)
 		message=""
+		for ip in data["ips"]:
+			if ip["tag"] == tag:
+				message=str(ip["reminder"])
+				ip["reminder"] = [] # clear ip's reminders
 
-		#if not data["ips"]:
-		#	message = "there's no reminders for " + tag
-		for i in range(0, len(data["ips"])):
-			if data["ips"][i]["tag"] == tag:
-				message=str(data["ips"][i]["reminder"])
-				data["ips"][i]["reminder"] = []
+		# save changes:
 		with open(REMINDERS_FILE, "w", encoding="utf-8") as outfile:
 			json.dump({"ips":[]}, outfile, ensure_ascii=False)
 
