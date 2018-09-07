@@ -16,7 +16,6 @@
 # GNU General Public License for more details.
 
 #TODO: (269) at_home, outside
-#TODO: if CONFIG_FILE, IP_FILE, REMINDERS_FILE doesn't exist
 
 import os
 import re
@@ -31,7 +30,15 @@ from telegram.ext import Updater, CommandHandler
 from threading import Thread
 
 APP = "janitor"
+try:
+	os.mkdir(os.path.expanduser("~")+'/.config')
+except FileExistsError:
+	pass
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config")
+try:
+	os.mkdir(CONFIG_DIR+'/'+APP)
+except FileExistsError:
+	pass
 CONFIG_APP_DIR = os.path.join(CONFIG_DIR, APP)
 CONFIG_FILE = os.path.join(CONFIG_APP_DIR, APP + ".conf")
 LOGGING_FILE = os.path.join(CONFIG_APP_DIR, APP + ".log")
@@ -42,44 +49,44 @@ ipsAtHome = os.path.join(CONFIG_APP_DIR, "ipsAtHome.json")
 ipsOutside = os.path.join(CONFIG_APP_DIR, "ipsAtHome.json")
 
 def add_ip(address,tag):
-	# mkdir ~/.config/janitor/
-	# echo "{\"ips\":[{\"tag\":\"\",\"address\":\"\"}]}"  > ~/.config/janitor/ips.json
-
 	# IP address pattern
 	pattern = re.compile("^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$")
 	# check if it's a valid ip address
-	if pattern.match(hostIP):
-		with json.load(open(IP_FILE)) as data:
-			# if there's no ips: add it
-			if not data["ips"]:
+	if pattern.match(address):
+		data = json.load(open(IP_FILE, "r"))
+		# if there's no ips: add it
+		if not data["ips"]:
+				data["ips"]=[]
+				data["ips"].append({})
+				data["ips"][0].update({"tag":tag,"address":address})
+				message = "new ip: " + address + " added as " + tag
+				print(message)
+		else:
+			# if there are ips: loop throught it
+			for ip in data["ips"]:
+				# if address is in IP_FILE: rename it
+				if ip["address"] == address:
+					ip.update({"tag":tag,"address":address})
+					message = address + " renamed as " + tag
+					print(message)
+					break
+				# if it's last element (that is, address isn't in IP_FILE): add it
+				if ip == data["ips"][-1]:
 					data["ips"].append({})
-					data["ips"][0].update({"tag":tag,"address":address})
+					data["ips"][i+1].update({"tag":tag,"address":address})
 					message = "new ip: " + address + " added as " + tag
 					print(message)
-			else:
-				# if there are ips: loop throught it
-				for ip in data["ips"]:
-					# if address is in IP_FILE: rename it
-					if ip["address"] == address:
-						ip.update({"tag":tag,"address":address})
-						message = address + " renamed as " + tag
-						print(message)
-						break
-					# if it's last element (that is, address isn't in IP_FILE): add it
-					if ip == data["ips"][-1]:
-						data["ips"].append({})
-						data["ips"][i+1].update({"tag":tag,"address":address})
-						message = "new ip: " + address + " added as " + tag
-						print(message)
 
-			# save changes:
-			with open(IP_FILE, "w", encoding="utf-8") as outfile:
-				json.dump(data, outfile, ensure_ascii=False)
+		# save changes:
+		json.dump(data, open(IP_FILE, "w"), ensure_ascii=False)
+	else:
+		message = "invalid ip"
+		print(message)
 
 	return message
 
 def print_ips():
-	with open(IP_FILE, encoding="utf-8") as f:
+	with open(IP_FILE, "r") as f:
 		data = json.load(f)
 		message=""
 		if not data["ips"]:
@@ -90,35 +97,33 @@ def print_ips():
 	return message
 
 def delete_ip(tag):
-	with json.load(open(IP_FILE)) as data:
-		# if there's no ips:
-		if not data["ips"]:
-			message = "there's no ips saved"
-			print(message)
-		else:
-			# if there are ips: loop throught it
-			for ip in data["ips"]:
-				# if tag is in IP_FILE: remove it
-				if ip["tag"] == tag:
-					message = "ip " + ip["address"] + " (" + tag + ") removed"
-					print(message)
-					data["ips"].pop(data["ips"].index(ip))
-					break
-				# if it's last element (that is, tag isn't in IP_FILE): warn it
-				if ip == data["ips"][-1]:
-					message = "no ip with " + tag + " as tag"
-					print(message)
+	data = json.load(open(IP_FILE, "r"))
+	# if there's no ips:
+	if not data["ips"]:
+		message = "there's no ips saved"
+		print(message)
+	else:
+		# if there are ips: loop throught it
+		for ip in data["ips"]:
+			# if tag is in IP_FILE: remove it
+			if ip["tag"] == tag:
+				message = "ip " + ip["address"] + " (" + tag + ") removed"
+				print(message)
+				data["ips"].pop(data["ips"].index(ip))
+				break
+			# if it's last element (that is, tag isn't in IP_FILE): warn it
+			if ip == data["ips"][-1]:
+				message = "no ip with " + tag + " as tag"
+				print(message)
 
-		# save changes:
-		with open(IP_FILE, "w", encoding="utf-8") as outfile:
-			json.dump(data, outfile, ensure_ascii=False)
+	# save changes:
+		json.dump(data, open(IP_FILE, "w"), ensure_ascii=False)
 
 	return message
 
 def add_reminder(tag, reminder):
-	# mkdir ~/.config/janitor/
-	# echo "{\"ips\":[]}"  > ~/.config/janitor/reminders.json
-	with json.load(open(REMINDERS_FILE)) as data:
+	#WIP:
+	with json.load(open(REMINDERS_FILE,"r+")) as data:
 		# if there's no ips: add tag and reminder
 		if not data["ips"]:
 			data["ips"].append({})
@@ -145,13 +150,13 @@ def add_reminder(tag, reminder):
 		#		-> check if tag exists in ips.json
 
 		# save changes:
-		with open(REMINDERS_FILE, "w", encoding="utf-8") as outfile:
+		with open(REMINDERS_FILE, "w") as outfile:
 			json.dump(data, outfile, ensure_ascii=False)
 
 	return message
 
 def reminders(tag):
-	with open(REMINDERS_FILE, encoding="utf-8") as f:
+	with open(REMINDERS_FILE, "w") as f:
 		data = json.load(f)
 		message=""
 		for ip in data["ips"]:
@@ -160,7 +165,7 @@ def reminders(tag):
 				ip["reminder"] = [] # clear ip's reminders
 
 		# save changes:
-		with open(REMINDERS_FILE, "w", encoding="utf-8") as outfile:
+		with open(REMINDERS_FILE, "w") as outfile:
 			json.dump({"ips":[]}, outfile, ensure_ascii=False)
 
 		print(message)
@@ -168,25 +173,23 @@ def reminders(tag):
 	return message
 
 def config():
-	# mkdir ~/.config/janitor/
-	# touch ~/.config/janitor/janitor.conf
-	with open(CONFIG_FILE, encoding="utf-8") as c:
-		token = input("enter your token \n(get it from @BotFather, as described in https://core.telegram.org/bots#6-botfather):\n")
+	with open(CONFIG_FILE, "w") as c:
+		token = input("enter your token \n(get it from @BotFather, \
+as described in https://core.telegram.org/bots#6-botfather):\n")
 		if token is "":
 			print("exit config. changes not saved")
 			print("actual config:\n" + str(json.load(c)))
 			return
-		chat_id = input("enter your chat_id (you can get it from @get_id_bot):\n")
+		chat_id = input("enter your chat_id (you can get it from @myidbot):\n")
 		if chat_id is "":
 			print("exit config. changes not saved")
 			print("actual config:\n" + str(json.load(c)))
 			return
 		else:
-			with open(CONFIG_FILE,"w", encoding="utf-8") as f:
-				json.dump({"token":token,"chat_id":chat_id}, f, ensure_ascii=False)
-				print("saved " + token + " as token in your config file")
-				print("saved " + chat_id + " as chat_id in your config file")
-				print("remember to start a telegram conversation with your bot")
+			json.dump({"token":token,"chat_id":chat_id}, c, ensure_ascii=False)
+			print("saved " + token + " as token in your config file")
+			print("saved " + chat_id + " as chat_id in your config file")
+			print("remember to start a telegram conversation with your bot")
 
 def message(text):
 	bot = JanitorBot()
@@ -195,7 +198,7 @@ def message(text):
 class JanitorBot(Bot):
     def __init__(self, token=None, chat_id=None):
     	if token is None or chat_id is None:
-    		with open(CONFIG_FILE) as f:
+    		with open(CONFIG_FILE, "w") as f:
     			config = json.load(f)
     			token = config["token"]
     			chat_id = config["chat_id"]
@@ -239,7 +242,8 @@ def pinging(iptarget, tag):
 	timeout = 40 # seconds to elapse before setting as gone
 	atHome = True
 	while True:
-		p = subprocess.Popen(["ping", "-q", "-c", "3", iptarget], stdout = subprocess.PIPE, stderr=subprocess.PIPE)
+		p = subprocess.Popen(["ping", "-q", "-c", "3", iptarget],
+			stdout = subprocess.PIPE, stderr=subprocess.PIPE)
 		droppedPackets = p.wait()
 
 		if not droppedPackets:
@@ -252,8 +256,10 @@ def pinging(iptarget, tag):
 				#message(reminders(tag))
 		else:
 			secondsout = (datetime.now() - hometime).seconds
-			print(tag + " isn't here since %d seconds -" % secondsout, datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
-			logger.warning(tag + " isn't here since "+str(secondsout)+" seconds - " + datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
+			print(tag + " isn't here since %d seconds -" %
+				secondsout, datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
+			logger.warning(tag + " isn't here since "+str(secondsout)+" seconds - "\
+				+ datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
 			#TODO: format to minutes, hours
 			if secondsout > timeout and atHome:
 				print(tag + " is gone.")
@@ -265,7 +271,7 @@ def pinging(iptarget, tag):
 		sleep(10)
 
 def start():
-	with open(CONFIG_FILE, encoding="utf-8") as f:
+	with open(CONFIG_FILE, "w") as f:
 		config = json.load(f)
 		token = config["token"]
 
@@ -276,7 +282,7 @@ def start():
 	dispatcher.add_handler(CommandHandler('delete_ip', telegram_delete_ip, pass_args=True))
 	dispatcher.add_handler(CommandHandler('reminder', telegram_reminder, pass_args=True))
 
-	with open(IP_FILE, encoding="utf-8") as f:
+	with open(IP_FILE, "w") as f:
 		data = json.load(f)
 		if len(data["ips"])==0:
 			message("there's no ip, can't ping it")
@@ -321,6 +327,13 @@ if __name__ == "__main__":
 	logger.setLevel(logging.WARNING) #TODO: INFO level?
 	logFile = logging.FileHandler(LOGGING_FILE)
 	logger.addHandler(logFile)
+
+	try:
+		with open(IP_FILE, "r+") as f:
+			if f.read()=="": print("{\"ips\":[]}",file=f)
+	except FileNotFoundError:
+		with open(IP_FILE, "w") as f:
+			print("{\"ips\":[]}",file=f)
 
 	if args.add_ip:
 		address = args.add_ip[0]
