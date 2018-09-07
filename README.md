@@ -8,7 +8,7 @@ Adem√°s, permite asociar **recordatorios** a cada IP. El objetivo de esta funci√
 
 <p align="center">
 <a href="https://11kaito11.deviantart.com/art/Scrubs-Wallpaper-11-330396239">
-  <img src="https://raw.githubusercontent.com/jartigag/janitor/master/janitor.png" width="60%">
+  <img src="https://raw.githubusercontent.com/jartigag/janitor/master/logo.png" width="60%">
 </a>
 </p>
 

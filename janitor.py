@@ -15,7 +15,10 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 # GNU General Public License for more details.
 
-#TODO: (269) at_home, outside
+#WIP: (128) add_reminder
+#TODO: (273) at_home, outside
+#TODO: virtualenv: mkvirtualenv -p python3 janitor;
+#				workon janitor; pip install -r requirements.txt
 
 import os
 import re
@@ -189,7 +192,7 @@ as described in https://core.telegram.org/bots#6-botfather):\n")
 			json.dump({"token":token,"chat_id":chat_id}, c, ensure_ascii=False)
 			print("saved " + token + " as token in your config file")
 			print("saved " + chat_id + " as chat_id in your config file")
-			print("remember to start a telegram conversation with your bot")
+			print("remember to start a telegram conversation with your bot\n\n")
 
 def message(text):
 	bot = JanitorBot()
@@ -198,7 +201,7 @@ def message(text):
 class JanitorBot(Bot):
     def __init__(self, token=None, chat_id=None):
     	if token is None or chat_id is None:
-    		with open(CONFIG_FILE, "w") as f:
+			with open(CONFIG_FILE, "r+") as f:
     			config = json.load(f)
     			token = config["token"]
     			chat_id = config["chat_id"]
@@ -271,7 +274,7 @@ def pinging(iptarget, tag):
 		sleep(10)
 
 def start():
-	with open(CONFIG_FILE, "w") as f:
+	with open(CONFIG_FILE, "r+") as f:
 		config = json.load(f)
 		token = config["token"]
 
@@ -282,7 +285,7 @@ def start():
 	dispatcher.add_handler(CommandHandler('delete_ip', telegram_delete_ip, pass_args=True))
 	dispatcher.add_handler(CommandHandler('reminder', telegram_reminder, pass_args=True))
 
-	with open(IP_FILE, "w") as f:
+	with open(IP_FILE, "r+") as f:
 		data = json.load(f)
 		if len(data["ips"])==0:
 			message("there's no ip, can't ping it")
@@ -304,8 +307,6 @@ if __name__ == "__main__":
 	# Options
 	parser = argparse.ArgumentParser(description="simple bot to monitor a local network")
 	group = parser.add_mutually_exclusive_group()
-	group.add_argument("-c", "--config", action="store_true",
-						help="set telegram params (token, chat_id)")
 	group.add_argument("-a", "--add_ip", metavar=("ip_address","tag"), nargs=2,
 	                    help="add an ip address with a tag. example: 192.168.1.1 router")
 	group.add_argument("-p", "--print_ips", action="store_true",
@@ -315,7 +316,8 @@ if __name__ == "__main__":
 	#group.add_argument("-e", "--at_home", action="store_true",
 	#					help="print who is at home")
 	group.add_argument("-r", "--reminder", metavar=("tag","reminder"), nargs=2,
-	                    help="add a reminder to a saved ip coming home. example: john \"hang up the washing!\"")
+	                    help="add a reminder to a saved ip coming home. \
+	                    example: john \"hang up the washing!\"")
 	#group.add_argument( "-o", "--outside",action="store_true",
 	#					help="print who is outside")
 	group.add_argument("-s", "--start", action="store_true",
@@ -329,6 +331,13 @@ if __name__ == "__main__":
 	logger.addHandler(logFile)
 
 	try:
+		with open(CONFIG_FILE, "r+") as f:
+			if f.read()=="":
+				config()
+	except FileNotFoundError:
+		config()
+
+	try:
 		with open(IP_FILE, "r+") as f:
 			if f.read()=="": print("{\"ips\":[]}",file=f)
 	except FileNotFoundError:
@@ -339,8 +348,6 @@ if __name__ == "__main__":
 		address = args.add_ip[0]
 		tag = args.add_ip[1]
 		add_ip(address,tag)
-	if args.config:
-		config()
 	#if args.at_home:
 	#	at_home()
 	if args.reminder:
