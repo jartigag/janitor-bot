@@ -158,17 +158,17 @@ def add_reminder(tag, reminder):
 	return message
 
 def print_reminders(tag):
-	with open(REMINDERS_FILE, "w") as f:
+	with open(REMINDERS_FILE, "r") as f:
 		data = json.load(f)
 		message=""
-		for ip in data["ips"]:
-			if ip["tag"] == tag:
-				message=str(ip["reminder"])
-				ip["reminder"] = [] # clear ip's reminders
+		for r in data["reminders"]:
+			if r["tag"] == tag:
+				message=str(r["reminder"])
+				r["reminder"] = [] # clear ip's reminders
 
 		# save changes:
 		with open(REMINDERS_FILE, "w") as outfile:
-			json.dump({"ips":[]}, outfile)
+			json.dump({"reminders":[]}, outfile)
 
 		print(message)
 
@@ -255,7 +255,7 @@ def pinging(iptarget, tag):
 			if not atHome:
 				message("welcome home, " + tag + "!")
 				atHome = True
-				#message(print_reminders(tag))
+				message(print_reminders(tag))
 		else:
 			secondsout = (datetime.now() - hometime).seconds
 			print(tag + " isn't here since %d seconds -" %
