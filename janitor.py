@@ -81,7 +81,7 @@ def add_ip(address,tag):
 					print(message)
 
 		# save changes:
-		json.dump(data, open(IP_FILE, "w"), ensure_ascii=False)
+		json.dump(data, open(IP_FILE, "w"))
 	else:
 		message = "invalid ip"
 		print(message)
@@ -119,46 +119,45 @@ def delete_ip(tag):
 				message = "no ip with " + tag + " as tag"
 				print(message)
 
-	# save changes:
-		json.dump(data, open(IP_FILE, "w"), ensure_ascii=False)
+		# save changes:
+		json.dump(data, open(IP_FILE, "w"))
 
 	return message
 
 def add_reminder(tag, reminder):
 	#WIP:
-	with json.load(open(REMINDERS_FILE,"r+")) as data:
-		# if there's no ips: add tag and reminder
-		if not data["ips"]:
-			data["ips"].append({})
-			data["ips"][0].update({"tag":tag,"reminder":[reminder]})
-			message = "new reminder to " + tag + ": " + reminder
-			print(message)
-		else:
-			# if there are ips: loop throught it
-			for ip in data["ips"]:
-				# if tag is in REMINDERS_FILE: add reminder
-				if ip["tag"] == tag:
-					ip["reminder"].append(reminder)
-					message = "reminder added to " + tag + ": " + reminder
-					print(message)
-					break
-				# if it's last element (that is, tag isn't in REMINDERS_FILE): add tag and reminder
-				if ip == data["ips"][-1]:
-					data["ips"].append({})
-					data["ips"][i+1].update({"tag":tag,"reminder":[reminder]})
-					message = "new reminder to " + tag + ": " + reminder
-					print(message)
+	data = json.load(open(REMINDERS_FILE,"r"))
+	# if there's no ips: add tag and reminder
+	if not data["reminders"]:
+		data["reminders"].append({})
+		data["reminders"][0].update({"tag":tag,"reminder":[reminder]})
+		message = "new reminder to " + tag + ": " + reminder
+		print(message)
+	else:
+		# if there are reminders: loop throught it
+		for d in data["reminders"]:
+			# if tag is in REMINDERS_FILE: add reminder
+			if d["tag"] == tag:
+				d["reminder"].append(reminder)
+				message = "reminder added to " + tag + ": " + reminder
+				print(message)
+				break
+			# if it's last element (that is, tag isn't in REMINDERS_FILE): add tag and reminder
+			if d == data["reminders"][-1]:
+				data["reminders"].append({})
+				data["reminders"][i+1].update({"tag":tag,"reminder":[reminder]})
+				message = "new reminder to " + tag + ": " + reminder
+				print(message)
 
-		#TODO: it incorrectly add a reminder to inexistent tags
-		#		-> check if tag exists in ips.json
+	#TODO: it incorrectly add a reminder to inexistent tags
+	#		-> check if tag exists in ips.json
 
-		# save changes:
-		with open(REMINDERS_FILE, "w") as outfile:
-			json.dump(data, outfile, ensure_ascii=False)
+	# save changes:
+	json.dump(data, open(REMINDERS_FILE, "w"))
 
 	return message
 
-def reminders(tag):
+def print_reminders(tag):
 	with open(REMINDERS_FILE, "w") as f:
 		data = json.load(f)
 		message=""
@@ -169,7 +168,7 @@ def reminders(tag):
 
 		# save changes:
 		with open(REMINDERS_FILE, "w") as outfile:
-			json.dump({"ips":[]}, outfile, ensure_ascii=False)
+			json.dump({"ips":[]}, outfile)
 
 		print(message)
 
@@ -189,7 +188,7 @@ as described in https://core.telegram.org/bots#6-botfather):\n")
 			print("actual config:\n" + str(json.load(c)))
 			return
 		else:
-			json.dump({"token":token,"chat_id":chat_id}, c, ensure_ascii=False)
+			json.dump({"token":token,"chat_id":chat_id}, c)
 			print("saved " + token + " as token in your config file")
 			print("saved " + chat_id + " as chat_id in your config file")
 			print("remember to start a telegram conversation with your bot\n\n")
@@ -199,19 +198,19 @@ def message(text):
 	bot.send_message(text)
 
 class JanitorBot(Bot):
-    def __init__(self, token=None, chat_id=None):
-    	if token is None or chat_id is None:
+	def __init__(self, token=None, chat_id=None):
+		if token is None or chat_id is None:
 			with open(CONFIG_FILE, "r+") as f:
-    			config = json.load(f)
-    			token = config["token"]
-    			chat_id = config["chat_id"]
-    	Bot.__init__(self, token)
-    	self.chat_id = chat_id
+				config = json.load(f)
+				token = config["token"]
+				chat_id = config["chat_id"]
+		Bot.__init__(self, token)
+		self.chat_id = chat_id
 
-    def send_message(self, text):
-        super(JanitorBot, self).send_message(chat_id=self.chat_id,
-                                            text=text,
-                                            parse_mode=ParseMode.MARKDOWN)
+	def send_message(self, text):
+		super(JanitorBot, self).send_message(chat_id=self.chat_id,
+											text=text,
+											parse_mode=ParseMode.MARKDOWN)
 
 def telegram_add_ip(bot, update, args):
 	try:
@@ -231,12 +230,12 @@ def telegram_delete_ip(bot, update, args):
 	except (IndexError, ValueError):
 		update.message.reply_text("usage: /delete_ip <tag>")
 
-def telegram_reminder(bot, update, args):
+def telegram_add_reminder(bot, update, args):
 	try:
 		#TODO: make args[1] to allow spaces
 		message(add_reminder(args[0], args[1]))
 	except (IndexError, ValueError):
-		update.message.reply_text("usage: /reminder <tag> <reminder_message>")
+		update.message.reply_text("usage: /add_reminder <tag> <reminder_message>")
 
 #TODO: only 1 argument (tag)
 def pinging(iptarget, tag):
@@ -256,7 +255,7 @@ def pinging(iptarget, tag):
 			if not atHome:
 				message("welcome home, " + tag + "!")
 				atHome = True
-				#message(reminders(tag))
+				#message(print_reminders(tag))
 		else:
 			secondsout = (datetime.now() - hometime).seconds
 			print(tag + " isn't here since %d seconds -" %
@@ -283,7 +282,7 @@ def start():
 	dispatcher.add_handler(CommandHandler('add_ip', telegram_add_ip, pass_args=True))
 	dispatcher.add_handler(CommandHandler('print_ips', telegram_print_ips))
 	dispatcher.add_handler(CommandHandler('delete_ip', telegram_delete_ip, pass_args=True))
-	dispatcher.add_handler(CommandHandler('reminder', telegram_reminder, pass_args=True))
+	dispatcher.add_handler(CommandHandler('reminder', telegram_add_reminder, pass_args=True))
 
 	with open(IP_FILE, "r+") as f:
 		data = json.load(f)
@@ -308,7 +307,7 @@ if __name__ == "__main__":
 	parser = argparse.ArgumentParser(description="simple bot to monitor a local network")
 	group = parser.add_mutually_exclusive_group()
 	group.add_argument("-a", "--add_ip", metavar=("ip_address","tag"), nargs=2,
-	                    help="add an ip address with a tag. example: 192.168.1.1 router")
+						help="add an ip address with a tag. example: 192.168.1.1 router")
 	group.add_argument("-p", "--print_ips", action="store_true",
 						help="print saved ips")
 	group.add_argument("-d", "--delete_ip", metavar="tag",
@@ -316,8 +315,8 @@ if __name__ == "__main__":
 	#group.add_argument("-e", "--at_home", action="store_true",
 	#					help="print who is at home")
 	group.add_argument("-r", "--reminder", metavar=("tag","reminder"), nargs=2,
-	                    help="add a reminder to a saved ip coming home. \
-	                    example: john \"hang up the washing!\"")
+						help="add a reminder to a saved ip coming home. \
+						example: john \"hang up the washing!\"")
 	#group.add_argument( "-o", "--outside",action="store_true",
 	#					help="print who is outside")
 	group.add_argument("-s", "--start", action="store_true",
@@ -344,6 +343,13 @@ if __name__ == "__main__":
 		with open(IP_FILE, "w") as f:
 			print("{\"ips\":[]}",file=f)
 
+	try:
+		with open(REMINDERS_FILE, "r+") as f:
+			if f.read()=="": print("{\"reminders\":[]}",file=f)
+	except FileNotFoundError:
+		with open(REMINDERS_FILE, "w") as f:
+			print("{\"reminders\":[]}",file=f)
+
 	if args.add_ip:
 		address = args.add_ip[0]
 		tag = args.add_ip[1]
@@ -363,4 +369,4 @@ if __name__ == "__main__":
 	if args.start:
 		start()
 	if not any(vars(args).values()):
-	    parser.print_help()
+		parser.print_help()
