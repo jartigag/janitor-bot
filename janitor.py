@@ -17,7 +17,7 @@
 
 #WIP: (128) add_reminder
 #TODO: (273) at_home, outside
-#TODO: virtualenv: mkvirtualenv -p python3 janitor;
+#WIP: virtualenv: mkvirtualenv -p python3 janitor;
 #				workon janitor; pip install -r requirements.txt
 
 import os
@@ -76,7 +76,7 @@ def add_ip(address,tag):
 				# if it's last element (that is, address isn't in IP_FILE): add it
 				if ip == data["ips"][-1]:
 					data["ips"].append({})
-					data["ips"][i+1].update({"tag":tag,"address":address})
+					data["ips"][-1].update({"tag":tag,"address":address})
 					message = "new ip: " + address + " added as " + tag
 					print(message)
 
