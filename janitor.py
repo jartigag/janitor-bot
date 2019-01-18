@@ -28,22 +28,18 @@ import json
 import subprocess
 from time import time, sleep
 from datetime import date, datetime
-from telegram import Bot, ParseMode
 from telegram.ext import Updater, CommandHandler
 from threading import Thread
+import blackbox_api
+import secrets # for Updater(token)
 
 APP = "janitor"
-try:
-	os.mkdir(os.path.expanduser("~")+'/.config')
-except FileExistsError:
-	pass
 CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config")
 try:
 	os.mkdir(CONFIG_DIR+'/'+APP)
 except FileExistsError:
 	pass
 CONFIG_APP_DIR = os.path.join(CONFIG_DIR, APP)
-CONFIG_FILE = os.path.join(CONFIG_APP_DIR, APP + ".conf")
 LOGGING_FILE = os.path.join(CONFIG_APP_DIR, APP + ".log")
 IP_FILE = os.path.join(CONFIG_APP_DIR, "ips.json")
 REMINDERS_FILE = os.path.join(CONFIG_APP_DIR, "reminders.json")
@@ -174,66 +170,28 @@ def print_reminders(tag):
 
 	return message
 
-def config():
-	with open(CONFIG_FILE, "w") as c:
-		token = input("enter your token \n(get it from @BotFather, \
-as described in https://core.telegram.org/bots#6-botfather):\n")
-		if token is "":
-			print("exit config. changes not saved")
-			print("actual config:\n" + str(json.load(c)))
-			return
-		chat_id = input("enter your chat_id (you can get it from @myidbot):\n")
-		if chat_id is "":
-			print("exit config. changes not saved")
-			print("actual config:\n" + str(json.load(c)))
-			return
-		else:
-			json.dump({"token":token,"chat_id":chat_id}, c)
-			print("saved " + token + " as token in your config file")
-			print("saved " + chat_id + " as chat_id in your config file")
-			print("remember to start a telegram conversation with your bot\n\n")
-
-def message(text):
-	bot = JanitorBot()
-	bot.send_message(text)
-
-class JanitorBot(Bot):
-	def __init__(self, token=None, chat_id=None):
-		if token is None or chat_id is None:
-			with open(CONFIG_FILE, "r+") as f:
-				config = json.load(f)
-				token = config["token"]
-				chat_id = config["chat_id"]
-		Bot.__init__(self, token)
-		self.chat_id = chat_id
-
-	def send_message(self, text):
-		super(JanitorBot, self).send_message(chat_id=self.chat_id,
-											text=text,
-											parse_mode=ParseMode.MARKDOWN)
-
-def telegram_add_ip(bot, update, args):
+def telegram_add_ip(update, args):
 	try:
-		message(add_ip(args[0], args[1]))
+		blackbox_api.post(add_ip(args[0], args[1]), telegram=True)
 	except (IndexError, ValueError):
 		update.message.reply_text("usage: /add_ip <localIP> <tag>")
 
-def telegram_print_ips(bot, update):
+def telegram_print_ips(update):
 	try:
-		message(print_ips())
+		blackbox_api.post(print_ips(), telegram=True)
 	except (IndexError, ValueError):
 		update.message.reply_text("usage: /print_ips")
 
-def telegram_delete_ip(bot, update, args):
+def telegram_delete_ip(update, args):
 	try:
-		message(delete_ip(args[0]))
+		blackbox_api.post(delete_ip(args[0]), telegram=True)
 	except (IndexError, ValueError):
 		update.message.reply_text("usage: /delete_ip <tag>")
 
-def telegram_add_reminder(bot, update, args):
+def telegram_add_reminder(update, args):
 	try:
 		#TODO: make args[1] to allow spaces
-		message(add_reminder(args[0], args[1]))
+		blackbox_api.post(add_reminder(args[0], args[1]), telegram=True)
 	except (IndexError, ValueError):
 		update.message.reply_text("usage: /add_reminder <tag> <reminder_message>")
 
@@ -253,9 +211,9 @@ def pinging(iptarget, tag):
 			logger.warning(tag + " at home! - " + datetime.now().strftime('%a, %d %b %Y %H:%M:%S'))
 			hometime = datetime.now()
 			if not atHome:
-				message("welcome home, " + tag + "!")
+				blackbox_api.post("welcome home, " + tag + "!", telegram=True)
 				atHome = True
-				message(print_reminders(tag))
+				blackbox_api.post(print_reminders(tag), telegram=True)
 		else:
 			secondsout = (datetime.now() - hometime).seconds
 			print(tag + " isn't here since %d seconds -" %
@@ -266,18 +224,14 @@ def pinging(iptarget, tag):
 			if secondsout > timeout and atHome:
 				print(tag + " is gone.")
 				logger.warning(tag + " is gone.")
-				message("goodbye " + tag + "!")
+				blackbox_api.post("goodbye " + tag + "!", telegram=True)
 				atHome = False
 
 		#TODO at_home, outside:
 		sleep(10)
 
 def start():
-	with open(CONFIG_FILE, "r+") as f:
-		config = json.load(f)
-		token = config["token"]
-
-	updater= Updater(token=token)
+	updater= Updater(token=secrets.telegram_token)
 	dispatcher = updater.dispatcher
 	dispatcher.add_handler(CommandHandler('add_ip', telegram_add_ip, pass_args=True))
 	dispatcher.add_handler(CommandHandler('print_ips', telegram_print_ips))
@@ -287,7 +241,7 @@ def start():
 	with open(IP_FILE, "r+") as f:
 		data = json.load(f)
 		if len(data["ips"])==0:
-			message("there's no ip, can't ping it")
+			blackbox_api.post("there's no ip, can't ping it", telegram=True)
 		for i in range(0, len(data["ips"])):
 			Thread(target=pinging, args=(data["ips"][i]["address"],data["ips"][i]["tag"])).start()
 		
@@ -328,13 +282,6 @@ if __name__ == "__main__":
 	logger.setLevel(logging.WARNING) #TODO: INFO level?
 	logFile = logging.FileHandler(LOGGING_FILE)
 	logger.addHandler(logFile)
-
-	try:
-		with open(CONFIG_FILE, "r+") as f:
-			if f.read()=="":
-				config()
-	except FileNotFoundError:
-		config()
 
 	try:
 		with open(IP_FILE, "r+") as f:
