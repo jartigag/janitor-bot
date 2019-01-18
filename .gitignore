@@ -1,2 +1,11 @@
 .directory
 .config
+
+# Compiled python modules
+*.pyc
+
+# Secrets python file
+secrets.py
+
+# Custom module (this is a temp way of using this personal library while developing)
+blackbox.py
